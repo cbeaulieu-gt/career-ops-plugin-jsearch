@@ -1,0 +1,13 @@
+{
+  "id": "jsearch",
+  "name": "JSearch",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "description": "Search JSearch through its authenticated RapidAPI endpoint.",
+  "hooks": ["provider"],
+  "requiredEnv": ["JSEARCH_RAPIDAPI_KEY"],
+  "allowedHosts": ["jsearch.p.rapidapi.com"],
+  "skill": "skill.md",
+  "humanInTheLoop": true,
+  "homepage": "https://github.com/cbeaulieu-gt/career-ops-plugin-jsearch"
+}

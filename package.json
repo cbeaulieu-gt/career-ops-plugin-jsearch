@@ -1,0 +1,15 @@
+{
+  "name": "career-ops-plugin-jsearch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Unlisted Career-Ops provider plugin for JSearch on RapidAPI",
+  "license": "MIT",
+  "repository": "https://github.com/cbeaulieu-gt/career-ops-plugin-jsearch",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.mjs"
+  }
+}
