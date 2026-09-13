@@ -10,7 +10,11 @@ const entryUrl = pathToFileURL(path.join(here, '..', manifest.entry || 'index.mj
 const hooks = (await import(entryUrl)).default;
 
 assert(hooks && typeof hooks === 'object');
-assert.deepEqual(Object.keys(hooks), ['provider']);
-assert(validHooks.includes('provider'));
+const exportedHooks = Object.keys(hooks).sort();
+const declaredHooks = [...manifest.hooks].sort();
+assert.deepEqual(exportedHooks, declaredHooks);
+for (const hookName of declaredHooks) {
+  assert(validHooks.includes(hookName));
+}
 assert.equal(hooks.provider.id, manifest.id);
-console.log('✓ smoke ok: provider');
+console.log(`✓ smoke ok: ${declaredHooks.join(', ')}`);

@@ -1,2 +1,5 @@
 node_modules/
 .env
+
+# Agent scratch files (per standards/scratch-files.md)
+.tmp/

@@ -4,7 +4,7 @@
 
 ## Trust and provenance
 
-This plugin is intentionally unlisted while it is reviewed and registered. A direct install is marked `❓ community-unverified`: Career-Ops has not approved that exact plugin commit in its registry, so you are trusting the author and the commit you choose. Review the source before installing, pin a full commit SHA, and review any later version before updating.
+This plugin is intentionally unlisted under Career-Ops' current upstream distribution policy; it is not awaiting registry inclusion. A direct install is marked `❓ community-unverified` because its exact commit is not in the Career-Ops registry, so you are trusting the author and the commit you choose. Review the source before installing, pin a full commit SHA, and review any later version before updating.
 
 This extracted implementation originates from Career-Ops issue #45 and PR #47. It retains the original MIT license in [LICENSE](LICENSE).
 
