@@ -33,6 +33,17 @@ test('parseRetryAfterMs handles delta seconds and rejects invalid values', () =>
   assert.equal(parseRetryAfterMs('not-a-date'), null);
 });
 
+test('parseRetryAfterMs handles future and expired HTTP dates', () => {
+  const originalNow = Date.now;
+  Date.now = () => 1_700_000_000_000;
+  try {
+    assert.equal(parseRetryAfterMs('Tue, 14 Nov 2023 22:13:25 GMT'), 5000);
+    assert.equal(parseRetryAfterMs('Tue, 14 Nov 2023 22:13:15 GMT'), 0);
+  } finally {
+    Date.now = originalNow;
+  }
+});
+
 test('isNetworkError recognizes DNS, timeout, and ordinary fetch failures only', () => {
   assert.equal(isNetworkError(Object.assign(new Error('not found'), { code: 'ENOTFOUND' })), true);
   assert.equal(isNetworkError(Object.assign(new Error('timed out'), { code: 'ETIMEDOUT' })), true);
@@ -100,6 +111,38 @@ test('fetchJsonWithRetry retries a statusless network failure', async () => {
   }
   assert.equal(attempts, 2);
   assert.deepEqual(sleeps, [500]);
+});
+
+test('fetchJsonWithRetry bounds fractional retry policies like the core helper', async () => {
+  let attempts = 0;
+  const failure = Object.assign(new Error('HTTP 503'), { status: 503 });
+  await assert.rejects(
+    () => fetchJsonWithRetry({
+      sleep: async () => {},
+      fetchJson: async () => {
+        attempts += 1;
+        throw failure;
+      },
+    }, 'https://example.com', {}, { retries: 1.5 }),
+    (error) => error === failure && error.attempts === 2,
+  );
+  assert.equal(attempts, 2);
+});
+
+test('fetchJsonWithRetry does not start malformed or negative retry policies', async () => {
+  for (const retries of ['invalid', -1]) {
+    let attempts = 0;
+    await assert.rejects(
+      () => fetchJsonWithRetry({
+        fetchJson: async () => {
+          attempts += 1;
+          throw Object.assign(new Error('HTTP 503'), { status: 503 });
+        },
+      }, 'https://example.com', {}, { retries }),
+      (error) => error === undefined,
+    );
+    assert.equal(attempts, 0);
+  }
 });
 
 test('fetchJsonWithRetry propagates non-retryable and primitive failures safely', async () => {
