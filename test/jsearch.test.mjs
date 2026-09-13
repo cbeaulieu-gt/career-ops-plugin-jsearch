@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+import { strict as assert } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 
 import jsearch from '../index.mjs';
