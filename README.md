@@ -74,7 +74,7 @@ tracked_companies:
 | `job_requirements` | Optional list or comma-separated requirements, such as `more_than_3_years_experience` or `no_degree`. |
 | `radius` | Optional non-negative distance in kilometres. |
 | `exclude_job_publishers` | Optional list or comma-separated publishers to exclude. |
-| `fields` | Optional list or comma-separated extra response fields. Required normalization fields are always requested. |
+| `fields` | Optional list or comma-separated extra response fields. When configured, required normalization fields are appended to the request. |
 | `max_pages` | Maximum cursor pages per enabled pass: 1–20; defaults to 1 and is capped at 20. |
 | `max_results` | Maximum unique results across enabled passes: 1–400; defaults to 400 and is capped at 400. |
 | `enabled` | Set to `true` only when you are ready for Career-Ops to run this search. |
