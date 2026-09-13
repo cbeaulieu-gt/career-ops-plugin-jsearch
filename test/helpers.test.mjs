@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+import assert from 'node:assert';
 
 import { normalizeUrl } from '../lib/normalize-url.mjs';
 import {
