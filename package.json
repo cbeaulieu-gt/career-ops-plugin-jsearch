@@ -1,6 +1,6 @@
 {
   "name": "career-ops-plugin-jsearch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "description": "Unlisted Career-Ops provider plugin for JSearch on RapidAPI",
