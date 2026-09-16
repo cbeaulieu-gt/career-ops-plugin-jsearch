@@ -231,6 +231,34 @@ test('fetch deduplicates combined passes by job id and canonical apply URL', asy
   ]);
 });
 
+test('fetch keeps distinct jobs whose apply identity is carried by hash routes', async () => {
+  const ctx = {
+    env: Object.freeze({ JSEARCH_RAPIDAPI_KEY: 'key' }),
+    fetchJson: async () => ({
+      status: 'OK',
+      data: {
+        jobs: [
+          {
+            job_id: 'job-123',
+            job_title: 'Hash Route Role 123',
+            job_apply_link: 'https://jobs.example.com/careers#/jobs/123',
+          },
+          {
+            job_id: 'job-456',
+            job_title: 'Hash Route Role 456',
+            job_apply_link: 'https://jobs.example.com/careers#/jobs/456',
+          },
+        ],
+        cursor: null,
+      },
+    }),
+  };
+
+  const jobs = await jsearch.provider.fetch({ query: 'AI jobs' }, ctx);
+
+  assert.deepEqual(jobs.map((job) => job.id), ['job-123', 'job-456']);
+});
+
 test('fetch stops at the configured result budget before following another cursor', async () => {
   let requests = 0;
   const ctx = {
