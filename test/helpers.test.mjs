@@ -28,6 +28,13 @@ test('normalizeUrl promotes the MokaHR job fragment before removing it', () => {
   );
 });
 
+test('normalizeUrl replaces a stale MokaHR query identity with the hash-route identity', () => {
+  assert.equal(
+    normalizeUrl('https://app.mokahr.com/acme?mokahr_job_id=stale#/job/current'),
+    'https://app.mokahr.com/acme?mokahr_job_id=current',
+  );
+});
+
 test('normalizeUrl preserves generic hash-route job identity', () => {
   assert.notEqual(
     normalizeUrl('https://jobs.example.com/careers#/jobs/123'),
