@@ -3,3 +3,4 @@ node_modules/
 
 # Agent scratch files (per standards/scratch-files.md)
 .tmp/
+.worktrees/
