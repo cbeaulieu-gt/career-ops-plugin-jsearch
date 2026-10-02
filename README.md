@@ -2,6 +2,8 @@
 
 `career-ops-plugin-jsearch` is an unlisted standalone [Career-Ops](https://github.com/career-ops-hq/career-ops) provider plugin. It searches JSearch's `search-v2` endpoint through RapidAPI when a `portals.yml` entry explicitly sets `provider: jsearch`.
 
+Version 1.1.0 and newer require career-ops v1.35.0 or newer. The plugin uses the core `ctx.normalizePostingUrl` capability so its URL deduplication stays identical to the scanner and tracker without carrying a copied normalizer.
+
 ## Trust and provenance
 
 This plugin is intentionally unlisted under Career-Ops' current upstream distribution policy; it is not awaiting registry inclusion. A direct install is marked `❓ community-unverified` because its exact commit is not in the Career-Ops registry, so you are trusting the author and the commit you choose. Review the source before installing, pin a full commit SHA, and review any later version before updating.
@@ -79,7 +81,7 @@ tracked_companies:
 | `max_results` | Maximum unique results across enabled passes: 1–400; defaults to 400 and is capped at 400. |
 | `enabled` | Set to `true` only when you are ready for Career-Ops to run this search. |
 
-Set `enabled: true` after reviewing the query. Geographic and remote passes are deduplicated by JSearch job ID and canonical application URL before results reach the normal scanner pipeline.
+Set `enabled: true` after reviewing the query. Geographic and remote passes are deduplicated by JSearch job ID and the canonical application-URL key supplied by career-ops before results reach the normal scanner pipeline.
 
 ## Security and review boundary
 
