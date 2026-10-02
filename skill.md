@@ -13,7 +13,7 @@ before enabling it.
 
 ## Setup
 
-1. Install this standalone plugin at a reviewed, pinned commit. See
+1. Use career-ops v1.35.0 or newer, then install this standalone plugin at a reviewed, pinned commit. See
    [README.md](README.md#install-and-enable) for the install-before-enable
    workflow.
 2. Subscribe to [JSearch on RapidAPI](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch)
@@ -45,4 +45,4 @@ tracked_companies:
 Set `enabled: true` when the query is ready. Results pass through the normal
 scanner title, location, content, trust, deduplication, and pipeline-writing
 stages. The plugin also deduplicates overlap between its geographic and remote
-passes by JSearch job ID and canonical apply URL.
+passes by JSearch job ID and the canonical posting-URL key supplied by career-ops.

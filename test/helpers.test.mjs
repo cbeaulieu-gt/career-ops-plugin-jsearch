@@ -1,6 +1,5 @@
 import { strict as assert } from 'node:assert';
 
-import { normalizeUrl } from '../lib/normalize-url.mjs';
 import {
   fetchJsonWithRetry,
   isNetworkError,
@@ -12,42 +11,6 @@ const tests = [];
 function test(name, run) {
   tests.push({ name, run });
 }
-
-test('normalizeUrl strips known tracking without collapsing functional parameters', () => {
-  assert.equal(
-    normalizeUrl('http://JOBS.EXAMPLE.COM/role/?utm_source=x&job=42#apply'),
-    'https://jobs.example.com/role?job=42',
-  );
-  assert.equal(normalizeUrl('javascript:alert(1)'), '');
-});
-
-test('normalizeUrl promotes the MokaHR job fragment before removing it', () => {
-  assert.equal(
-    normalizeUrl('https://app.mokahr.com/acme#/job/role%2F42?utm_source=x'),
-    'https://app.mokahr.com/acme?mokahr_job_id=role%2F42',
-  );
-});
-
-test('normalizeUrl replaces a stale MokaHR query identity with the hash-route identity', () => {
-  assert.equal(
-    normalizeUrl('https://app.mokahr.com/acme?mokahr_job_id=stale#/job/current'),
-    'https://app.mokahr.com/acme?mokahr_job_id=current',
-  );
-});
-
-test('normalizeUrl preserves generic hash-route job identity', () => {
-  assert.notEqual(
-    normalizeUrl('https://jobs.example.com/careers#/jobs/123'),
-    normalizeUrl('https://jobs.example.com/careers#/jobs/456'),
-  );
-});
-
-test('normalizeUrl preserves an existing comparison value beside the promoted hash job ID', () => {
-  assert.equal(
-    normalizeUrl('https://jobs.example.com/careers?_career_ops_fragment_job_id=query-id#/jobs/hash-id'),
-    'https://jobs.example.com/careers?_career_ops_fragment_job_id=hash-id&_career_ops_fragment_job_id=query-id',
-  );
-});
 
 test('parseRetryAfterMs handles delta seconds and rejects invalid values', () => {
   assert.equal(parseRetryAfterMs('2'), 2000);

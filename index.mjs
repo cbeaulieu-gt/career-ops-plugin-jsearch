@@ -1,6 +1,5 @@
 // @ts-check
 
-import { normalizeUrl } from './lib/normalize-url.mjs';
 import { fetchJsonWithRetry, isNetworkError } from './lib/http-retry.mjs';
 
 const API_URL = 'https://jsearch.p.rapidapi.com/search-v2';
@@ -171,7 +170,7 @@ async function fetchPass(entry, ctx, key, pageBudget, resultBudget, remoteOnly, 
     for (const result of payload.data.jobs) {
       const normalized = normalizeResult(result);
       if (!normalized) continue;
-      const urlKey = normalizeUrl(normalized.url);
+      const urlKey = ctx.normalizePostingUrl(normalized.url);
       if (state.seenIds.has(normalized.id) || (urlKey && state.seenUrls.has(urlKey))) continue;
       state.seenIds.add(normalized.id);
       if (urlKey) state.seenUrls.add(urlKey);
@@ -194,6 +193,9 @@ export default {
       if (!key) throw new Error('jsearch: JSEARCH_RAPIDAPI_KEY must be set in .env');
       if (typeof ctx?.fetchJson !== 'function') {
         throw new Error('jsearch: plugin context is missing fetchJson');
+      }
+      if (typeof ctx?.normalizePostingUrl !== 'function') {
+        throw new Error('jsearch: plugin context is missing normalizePostingUrl; career-ops v1.35.0 or newer is required');
       }
       if (!stringValue(entry?.query)) {
         throw new Error(`jsearch: entry ${entry?.name || '(unnamed)'} requires a non-empty 'query'`);

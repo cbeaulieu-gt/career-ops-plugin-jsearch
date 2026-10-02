@@ -9,6 +9,13 @@ function test(name, run) {
   tests.push({ name, run });
 }
 
+function fetchJobs(entry, ctx) {
+  return jsearch.provider.fetch(entry, {
+    normalizePostingUrl: (url) => url,
+    ...ctx,
+  });
+}
+
 test('manifest declares the keyed RapidAPI provider security boundary', async () => {
   const manifestUrl = new URL('../manifest.json', import.meta.url);
   const manifest = JSON.parse(await readFile(manifestUrl, 'utf8'));
@@ -67,7 +74,7 @@ test('fetch builds filtered Search V2 requests and follows response cursors', as
     },
   };
 
-  const jobs = await jsearch.provider.fetch({
+  const jobs = await fetchJobs({
     name: 'JSearch Canada',
     query: 'AI leadership jobs in Toronto',
     country: 'ca',
@@ -137,7 +144,7 @@ test('fetch skips the cursor when a raw page contains fewer than ten jobs', asyn
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs', max_pages: 2 }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs', max_pages: 2 }, ctx);
 
   assert.equal(requests, 1);
   assert.deepEqual(jobs.map((job) => job.id), ['underfilled-page-job']);
@@ -166,7 +173,7 @@ test('fetch runs independently configurable geographic and remote-only passes', 
     },
   };
 
-  const both = await jsearch.provider.fetch({ query: 'AI jobs in Toronto', include_remote: true }, ctx);
+  const both = await fetchJobs({ query: 'AI jobs in Toronto', include_remote: true }, ctx);
 
   assert.equal(requests.length, 2);
   assert.equal(requests[0].searchParams.has('work_from_home'), false);
@@ -174,7 +181,7 @@ test('fetch runs independently configurable geographic and remote-only passes', 
   assert.deepEqual(both.map((job) => job.title), ['Toronto Role', 'Remote Role']);
 
   requests.length = 0;
-  const remoteOnly = await jsearch.provider.fetch({
+  const remoteOnly = await fetchJobs({
     query: 'AI jobs',
     include_geo: false,
     include_remote: true,
@@ -185,7 +192,7 @@ test('fetch runs independently configurable geographic and remote-only passes', 
   assert.deepEqual(remoteOnly.map((job) => job.title), ['Toronto Role']);
 
   requests.length = 0;
-  const disabled = await jsearch.provider.fetch({
+  const disabled = await fetchJobs({
     query: 'AI jobs',
     include_geo: false,
     include_remote: false,
@@ -194,7 +201,7 @@ test('fetch runs independently configurable geographic and remote-only passes', 
   assert.equal(requests.length, 0);
 });
 
-test('fetch deduplicates combined passes by job id and canonical apply URL', async () => {
+test('fetch deduplicates combined passes with the injected canonical posting-URL key', async () => {
   const makeJob = (id, title, url) => ({
     job_id: id,
     job_title: title,
@@ -204,25 +211,26 @@ test('fetch deduplicates combined passes by job id and canonical apply URL', asy
   });
   const ctx = {
     env: Object.freeze({ JSEARCH_RAPIDAPI_KEY: 'key' }),
+    normalizePostingUrl: (url) => (url.includes('/same') ? 'canonical-same-key' : url),
     fetchJson: async (url) => ({
       status: 'OK',
       data: {
         jobs: new URL(url).searchParams.has('work_from_home')
           ? [
               makeJob('shared-id', 'Shared duplicate by id', 'https://jobs.example.com/shared?utm_source=remote'),
-              makeJob('url-second-id', 'Duplicate by URL', 'https://jobs.example.com/same?utm_campaign=remote'),
+              makeJob('url-second-id', 'Duplicate by URL', 'https://jobs.example.com/same?variant=remote'),
               makeJob('remote-only', 'Remote Only', 'https://jobs.example.com/remote'),
             ]
           : [
               makeJob('shared-id', 'Shared', 'https://jobs.example.com/shared?utm_source=geo'),
-              makeJob('url-first-id', 'Canonical URL Winner', 'http://JOBS.EXAMPLE.COM/same/?utm_source=geo'),
+              makeJob('url-first-id', 'Canonical URL Winner', 'https://jobs.example.com/same?variant=geo'),
             ],
         cursor: null,
       },
     }),
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs', include_remote: true }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs', include_remote: true }, ctx);
 
   assert.deepEqual(jobs.map((job) => job.title), [
     'Shared',
@@ -254,7 +262,7 @@ test('fetch keeps distinct jobs whose apply identity is carried by hash routes',
     }),
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs' }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs' }, ctx);
 
   assert.deepEqual(jobs.map((job) => job.id), ['job-123', 'job-456']);
 });
@@ -281,7 +289,7 @@ test('fetch stops at the configured result budget before following another curso
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs', max_pages: 20, max_results: 3 }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs', max_pages: 20, max_results: 3 }, ctx);
 
   assert.equal(requests, 1);
   assert.deepEqual(jobs.map((job) => job.id), ['job-1', 'job-2', 'job-3']);
@@ -326,7 +334,7 @@ test('duplicate rows do not consume the unique-result budget within a pass', asy
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs', max_pages: 2, max_results: 2 }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs', max_pages: 2, max_results: 2 }, ctx);
 
   assert.equal(requests.length, 2);
   assert.deepEqual(jobs.map((job) => job.id), ['duplicate', 'unique']);
@@ -379,7 +387,7 @@ test('duplicates from the remote pass do not consume its remaining unique-result
     },
   };
 
-  const jobs = await jsearch.provider.fetch({
+  const jobs = await fetchJobs({
     query: 'AI jobs',
     include_remote: true,
     max_pages: 2,
@@ -399,12 +407,30 @@ test('fetch requires the RapidAPI key from scoped plugin context', async (t) => 
   process.env.JSEARCH_RAPIDAPI_KEY = 'global-key-must-not-be-read';
 
   await assert.rejects(
-    jsearch.provider.fetch(
+    fetchJobs(
       { query: 'AI jobs' },
       { env: Object.freeze({}), fetchJson: async () => ({ data: { jobs: [] } }) },
     ),
     /JSEARCH_RAPIDAPI_KEY/,
   );
+});
+
+test('fetch requires the career-ops v1.35.0 posting-URL capability before requesting', async () => {
+  let requests = 0;
+  await assert.rejects(
+    jsearch.provider.fetch(
+      { query: 'AI jobs' },
+      {
+        env: Object.freeze({ JSEARCH_RAPIDAPI_KEY: 'key' }),
+        fetchJson: async () => {
+          requests += 1;
+          return { status: 'OK', data: { jobs: [], cursor: null } };
+        },
+      },
+    ),
+    /normalizePostingUrl.*career-ops v1\.35\.0/,
+  );
+  assert.equal(requests, 0);
 });
 
 test('fetch surfaces API failures without exposing the RapidAPI key', async () => {
@@ -428,7 +454,7 @@ test('fetch surfaces API failures without exposing the RapidAPI key', async () =
     };
 
     await assert.rejects(
-      jsearch.provider.fetch({ query: 'AI jobs' }, ctx),
+      fetchJobs({ query: 'AI jobs' }, ctx),
       (error) => {
         assert.equal(error.status, status);
         assert.equal(error.retryAfter, retryAfter);
@@ -460,7 +486,7 @@ test('fetch retries a rate limit and honors Retry-After before recovering', asyn
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs' }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs' }, ctx);
 
   assert.deepEqual(jobs, []);
   assert.equal(attempts, 2);
@@ -479,7 +505,7 @@ test('fetch retries a network error and recovers', async () => {
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs' }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs' }, ctx);
 
   assert.deepEqual(jobs, []);
   assert.equal(attempts, 2);
@@ -503,7 +529,7 @@ test('fetch retries a DNS error wrapped by the guarded plugin transport', async 
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs' }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs' }, ctx);
 
   assert.deepEqual(jobs, []);
   assert.equal(attempts, 2);
@@ -521,7 +547,7 @@ test('fetch does not retry a statusless non-network failure', async () => {
   };
 
   await assert.rejects(
-    () => jsearch.provider.fetch({ query: 'AI jobs' }, ctx),
+    () => fetchJobs({ query: 'AI jobs' }, ctx),
     /Unexpected token in JSON/,
   );
   assert.equal(attempts, 1);
@@ -545,7 +571,7 @@ test('fetch honors an HTTP-date Retry-After within the bounded delay', async () 
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs' }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs' }, ctx);
 
   assert.deepEqual(jobs, []);
   assert.equal(attempts, 2);
@@ -571,7 +597,7 @@ test('radius is included only when explicitly set to a non-negative number', asy
         return { status: 'OK', data: { jobs: [], cursor: null } };
       },
     };
-    await jsearch.provider.fetch({ query: 'AI jobs', radius: value }, ctx);
+    await fetchJobs({ query: 'AI jobs', radius: value }, ctx);
     assert.equal(requestUrl.searchParams.get('radius'), expected);
   }
 });
@@ -586,8 +612,8 @@ test('fetch rejects malformed or non-OK Search V2 payloads', async () => {
     fetchJson: async () => responses.shift(),
   };
 
-  await assert.rejects(jsearch.provider.fetch({ query: 'AI jobs' }, ctx), /malformed Search V2 response/);
-  await assert.rejects(jsearch.provider.fetch({ query: 'AI jobs' }, ctx), /malformed Search V2 response/);
+  await assert.rejects(fetchJobs({ query: 'AI jobs' }, ctx), /malformed Search V2 response/);
+  await assert.rejects(fetchJobs({ query: 'AI jobs' }, ctx), /malformed Search V2 response/);
 });
 
 test('normalization uses safe apply fallbacks and drops unusable results', async () => {
@@ -636,7 +662,7 @@ test('normalization uses safe apply fallbacks and drops unusable results', async
     }),
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs' }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs' }, ctx);
 
   assert.deepEqual(jobs, [
     {
@@ -684,7 +710,7 @@ test('fetch enforces the twenty-page safety ceiling', async () => {
     },
   };
 
-  const jobs = await jsearch.provider.fetch({ query: 'AI jobs', max_pages: 500 }, ctx);
+  const jobs = await fetchJobs({ query: 'AI jobs', max_pages: 500 }, ctx);
 
   assert.equal(requests, 20);
   assert.equal(jobs.length, 20);
@@ -701,7 +727,7 @@ test('fetch rejects a missing search query before making a request', async () =>
   };
 
   await assert.rejects(
-    jsearch.provider.fetch({ name: 'Missing query' }, ctx),
+    fetchJobs({ name: 'Missing query' }, ctx),
     /requires a non-empty 'query'/,
   );
   assert.equal(requests, 0);
